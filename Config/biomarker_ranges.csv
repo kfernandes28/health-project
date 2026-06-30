@@ -1,0 +1,30 @@
+﻿biomarker_code,label,unit,low_min,low_max,optimal_min,optimal_max,show_as_kpi,category,description
+vitamin_d,Vitamin D,nmol/L,25,50,100,125,TRUE,Vitamins & Nutrients,
+b12,B12,pmol/L,180,400,500,900,TRUE,Vitamins & Nutrients,
+testosterone,Testosterone,nmol/L,8,12,20,28,TRUE,Hormones,
+omega-3 index,Omega-3 Index,%,4,8,8,12,TRUE,Fatty Acids,
+hba1c,HbA1c,mmol/mol,,,,42,TRUE,Metabolic Health,
+fasting_glucose,Fasting Glucose,mmol/L,,3.99,4,5.59,TRUE,Metabolic Health,
+crp,CRP,mg/L,,,,10,FALSE,Inflammation,
+hscrp,hsCRP,mg/L,,,,1,TRUE,Inflammation,
+ferritin,Ferritin,ug/L,,,20,300,TRUE,Iron Status,
+iron,Iron,umol/L,,,5.9,34.5,TRUE,Iron Status,
+transferrin_saturation,Transferrin Saturation,%,,20,20.1,50,FALSE,Iron Status,"What is it?
+Measures how much of your iron transport protein (transferrin) is currently carrying iron.
+
+Generally?
+Higher is not always better. In men, 50% is considered the upper limit of normal.
+
+Practical meaning
+Useful when interpreted alongside ferritin and serum iron. High values can indicate abundant iron availability, while low values may suggest iron deficiency."
+folate,Folate,ug/L,,,3.1,26.8,TRUE,Vitamins & Nutrients,
+shbg,SHBG,nmol/L,,,18.31,54.1,FALSE,Hormones,
+free_testosterone,Free Testosterone,nmol/L,,,0.183,0.718,FALSE,Hormones,
+tsh,TSH,mIU/L,,,0.351,5.5,FALSE,Thyroid Function,
+free_t4,Free T4,pmol/L,,,11.91,21.6,FALSE,Thyroid Function,
+total_cholesterol,Total Cholesterol,mmol/L,,,,5,FALSE,Cardiovascular Health,
+ldl,LDL,mmol/L,,,,3,FALSE,Cardiovascular Health,
+hdl,HDL,mmol/L,,1.55,1.55,,FALSE,Cardiovascular Health,
+triglycerides,Triglycerides,mmol/L,,,,1.7,FALSE,Cardiovascular Health,
+alt,ALT,U/L,,,,55,FALSE,Liver Function,
+calcium,Calcium,mmol/L,,,2.21,2.6,FALSE,Minerals & Electrolytes,
