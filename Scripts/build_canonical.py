@@ -3,7 +3,14 @@ import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
-RAW_PATH = BASE_DIR / "Stage 0 - Raw" / "Raw_blood_tests.csv"
+REAL_PATH = BASE_DIR / "Stage 0 - Raw" / "Raw_blood_tests.csv"
+SAMPLE_PATH = BASE_DIR / "Stage 0 - Raw" / "Raw_blood_tests_sample.csv"
+
+if REAL_PATH.exists():
+    RAW_PATH = REAL_PATH
+else:
+    RAW_PATH = SAMPLE_PATH
+
 OUT_DIR = BASE_DIR / "Stage 1 - Canonical"
 OUT_PATH = OUT_DIR / "biomarker_results.csv"
 

@@ -1,2 +1,8 @@
 .DS_Store
 venv/
+
+
+# Personal health data
+Stage 0 - Raw/Raw_blood_tests.csv
+Stage 1 - Canonical/biomarker_results.csv
+Stage 2 - Dashboard/index.html
