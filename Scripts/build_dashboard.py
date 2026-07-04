@@ -30,6 +30,26 @@ kpi_biomarkers = set(
     ]
 )
 
+# Range bands are now plotted as traces instead of layout shapes to stop Plotly dropdown colours switching.
+def has_range(pair):
+    return (
+        pair is not None
+        and len(pair) == 2
+        and pd.notna(pair[0])
+        and pd.notna(pair[1])
+    )
+
+def range_bounds(biomarker_range):
+    bounds = []
+
+    for key in ["low", "normal", "optimal"]:
+        pair = biomarker_range.get(key)
+
+        if has_range(pair):
+            bounds.extend(pair)
+
+    return bounds
+
 def get_status(value, biomarker_code):
 
     biomarker_range = RANGES.get(biomarker_code)
@@ -37,19 +57,34 @@ def get_status(value, biomarker_code):
     if biomarker_range is None:
         return "Unknown"
 
-    low_min, low_max = biomarker_range["low"]
-    optimal_min, optimal_max = biomarker_range["optimal"]
+    low = biomarker_range.get("low")
+    normal = biomarker_range.get("normal")
+    optimal = biomarker_range.get("optimal")
 
-    if value < low_max:
-        return "Low"
+    if has_range(low):
+        low_min, low_max = low
+        if low_min <= value < low_max:
+            return "Low"
 
-    if optimal_min <= value <= optimal_max:
-        return "Optimal"
+    if has_range(normal):
+        normal_min, normal_max = normal
+        if normal_min <= value < normal_max:
+            return "Normal"
 
-    if value > optimal_max:
-        return "High"
+    if has_range(optimal):
+        optimal_min, optimal_max = optimal
+        if optimal_min <= value <= optimal_max:
+            return "Optimal"
+        if value > optimal_max:
+            return "High"
 
-    return "Normal"
+    # If no optimal range is defined, treat values above the normal range as high.
+    if has_range(normal):
+        _, normal_max = normal
+        if value > normal_max:
+            return "High"
+
+    return "Unknown"
 
 def format_status(status):
     if status == "Optimal":
@@ -119,6 +154,72 @@ def load_interventions():
 
     return linked
 
+def make_intervention_shapes_and_annotations(code, interventions):
+    shapes = []
+    annotations = []
+
+    if interventions.empty:
+        return shapes, annotations
+
+    linked_interventions = interventions[
+        interventions["biomarker_code"] == code
+    ]
+
+    for _, intervention in linked_interventions.iterrows():
+        start_date = intervention["start_date"]
+        end_date = intervention["end_date"]
+        name = intervention["name"]
+
+        shapes.append(
+            dict(
+                type="line",
+                xref="x",
+                x0=start_date,
+                x1=start_date,
+                yref="paper",
+                y0=0,
+                y1=1,
+                line=dict(
+                    width=2,
+                    dash="dash",
+                    color="black",
+                ),
+            )
+        )
+
+        annotations.append(
+            dict(
+                x=start_date,
+                y=1.05,
+                xref="x",
+                yref="paper",
+                text=f"Started: {name}",
+                showarrow=False,
+                font=dict(size=11),
+                align="left",
+            )
+        )
+
+        if pd.notna(end_date):
+            shapes.append(
+                dict(
+                    type="line",
+                    xref="x",
+                    x0=end_date,
+                    x1=end_date,
+                    yref="paper",
+                    y0=0,
+                    y1=1,
+                    line=dict(
+                        width=2,
+                        dash="dot",
+                        color="black",
+                    ),
+                )
+            )
+
+    return shapes, annotations
+
 for _, row in ranges_df.iterrows():
     RANGES[row["biomarker_code"]] = {
         "label": row["label"],
@@ -126,6 +227,7 @@ for _, row in ranges_df.iterrows():
         "category": row["category"],
         "description": row.get("description", ""),
         "low": (row["low_min"], row["low_max"]),
+        "normal": (row["normal_min"], row["normal_max"]),
         "optimal": (row["optimal_min"], row["optimal_max"]),
     }
 
@@ -159,7 +261,61 @@ def main():
 
     biomarkers = sorted(df["biomarker_code"].unique())
 
+    df_min_date = df["test_date"].min()
+    df_max_date = df["test_date"].max()
+
+    def add_range_band(y0, y1, color, visible):
+        fig.add_trace(
+            go.Scatter(
+                x=[df_min_date, df_max_date, df_max_date, df_min_date],
+                y=[y0, y0, y1, y1],
+                fill="toself",
+                fillcolor=color,
+                line=dict(width=0),
+                mode="none",
+                hoverinfo="skip",
+                showlegend=False,
+                visible=visible,
+            )
+        )
+
+    trace_groups = {}
+
     for i, code in enumerate(biomarkers):
+        biomarker_range = RANGES.get(code, {})
+        visible = i == 0
+        trace_groups[code] = []
+
+        # low band
+        if has_range(biomarker_range.get("low")):
+            add_range_band(
+                biomarker_range["low"][0],
+                biomarker_range["low"][1],
+                "rgba(240, 128, 128, 0.2)",
+                visible,
+            )
+            trace_groups[code].append(len(fig.data) - 1)
+
+        # normal band
+        if has_range(biomarker_range.get("normal")):
+            add_range_band(
+                biomarker_range["normal"][0],
+                biomarker_range["normal"][1],
+                "rgba(240, 230, 140, 0.25)",
+                visible,
+            )
+            trace_groups[code].append(len(fig.data) - 1)
+
+        # optimal band
+        if has_range(biomarker_range.get("optimal")):
+            add_range_band(
+                biomarker_range["optimal"][0],
+                biomarker_range["optimal"][1],
+                "rgba(144, 238, 144, 0.3)",
+                visible,
+            )
+            trace_groups[code].append(len(fig.data) - 1)
+
         sub = df[df["biomarker_code"] == code]
 
         fig.add_trace(
@@ -177,117 +333,37 @@ def main():
                     "Provider: %{customdata[0]}<br>"
                     "Unit: %{customdata[1]}<extra></extra>"
                 ),
-                visible=(i == 0),
+                visible=visible,
             )
         )
+        trace_groups[code].append(len(fig.data) - 1)
 
     buttons = []
 
     for i, code in enumerate(biomarkers):
-        visibility = [False] * len(biomarkers)
-        visibility[i] = True
+        visibility = [False] * len(fig.data)
+
+        for trace_index in trace_groups[code]:
+            visibility[trace_index] = True
 
         biomarker_range = RANGES.get(code, {})
         sub_values = df.loc[df["biomarker_code"] == code, "value"]
 
-        y_min = min(sub_values.min(), biomarker_range["low"][0], biomarker_range["optimal"][0])
-        y_max = max(sub_values.max(), biomarker_range["low"][1], biomarker_range["optimal"][1])
+        y_values = [sub_values.min(), sub_values.max()] + range_bounds(biomarker_range)
+        y_min = min(y_values)
+        y_max = max(y_values)
 
         padding = (y_max - y_min) * 0.10
 
+        if padding == 0:
+            padding = max(abs(y_max) * 0.10, 1)
+
         y_axis_range = [y_min - padding, y_max + padding]
-        shapes = []
-        annotations = []    
 
-        if "low" in biomarker_range:
-            shapes.append(
-                dict(
-                    type="rect",
-                    xref="paper",
-                    x0=0,
-                    x1=1,
-                    yref="y",
-                    y0=biomarker_range["low"][0],
-                    y1=biomarker_range["low"][1],
-                    fillcolor="lightcoral",
-                    opacity=0.2,
-                    layer="below",
-                    line_width=0,
-                )
-            )
+        # Range bands are now normal traces, not layout shapes.
+        # Intervention lines stay as layout shapes because they are simple vertical markers.
+        shapes, annotations = make_intervention_shapes_and_annotations(code, interventions)
 
-        if "optimal" in biomarker_range:
-            shapes.append(
-                dict(
-                    type="rect",
-                    xref="paper",
-                    x0=0,
-                    x1=1,
-                    yref="y",
-                    y0=biomarker_range["optimal"][0],
-                    y1=biomarker_range["optimal"][1],
-                    fillcolor="lightgreen",
-                    opacity=0.3,
-                    layer="below",
-                    line_width=0,
-                )
-            )
-        linked_interventions = interventions[
-            interventions["biomarker_code"] == code
-        ] if not interventions.empty else pd.DataFrame()
-
-        for _, intervention in linked_interventions.iterrows():
-            start_date = intervention["start_date"]
-            end_date = intervention["end_date"]
-            name = intervention["name"]
-
-            shapes.append(
-                dict(
-                    type="line",
-                    xref="x",
-                    x0=start_date,
-                    x1=start_date,
-                    yref="paper",
-                    y0=0,
-                    y1=1,
-                    line=dict(
-                        width=2,
-                        dash="dash",
-                        color="black",
-                    ),
-                )
-            )
-
-            annotations.append(
-                dict(
-                    x=start_date,
-                    y=1.05,
-                    xref="x",
-                    yref="paper",
-                    text=f"Started: {name}",
-                    showarrow=False,
-                    font=dict(size=11),
-                    align="left",
-                )
-            )
-
-            if pd.notna(end_date):
-                shapes.append(
-                    dict(
-                        type="line",
-                        xref="x",
-                        x0=end_date,
-                        x1=end_date,
-                        yref="paper",
-                        y0=0,
-                        y1=1,
-                        line=dict(
-                            width=2,
-                            dash="dot",
-                            color="black",
-                        ),
-                    )
-                )
         label = biomarker_range.get("label", code)
 
         buttons.append(
@@ -298,8 +374,8 @@ def main():
                     {"visible": visibility},
                     {
                         #"title": f"{label} Over Time",
-                        "shapes": shapes,
-                        "annotations": annotations,
+                        "shapes": list(shapes),
+                        "annotations": list(annotations),
                         "yaxis.title.text": biomarker_range.get("unit", "Value"),
                         "yaxis.range": y_axis_range,
                     },
@@ -312,42 +388,27 @@ def main():
 
     first_values = df.loc[df["biomarker_code"] == first_code, "value"]
 
-    first_y_min = min(first_values.min(), first_range["low"][0], first_range["optimal"][0])
-    first_y_max = max(first_values.max(), first_range["low"][1], first_range["optimal"][1])
+    first_y_values = [first_values.min(), first_values.max()] + range_bounds(first_range)
+    first_y_min = min(first_y_values)
+    first_y_max = max(first_y_values)
     first_padding = (first_y_max - first_y_min) * 0.10
+
+    if first_padding == 0:
+        first_padding = max(abs(first_y_max) * 0.10, 1)
 
     first_y_axis_range = [first_y_min - first_padding, first_y_max + first_padding]
 
-    initial_shapes = [
-        dict(
-            type="rect",
-            xref="paper", x0=0, x1=1,
-            yref="y",
-            y0=first_range["low"][0],
-            y1=first_range["low"][1],
-            fillcolor="lightcoral",
-            opacity=0.2,
-            layer="below",
-            line_width=0,
-        ),
-        dict(
-            type="rect",
-            xref="paper", x0=0, x1=1,
-            yref="y",
-            y0=first_range["optimal"][0],
-            y1=first_range["optimal"][1],
-            fillcolor="lightgreen",
-            opacity=0.3,
-            layer="below",
-            line_width=0,
-        ),
-    ]
+    initial_shapes, initial_annotations = make_intervention_shapes_and_annotations(
+        first_code,
+        interventions
+    )
 
     fig.update_layout(
         #title=f"{first_range.get('label', first_code)} Over Time",
         template="plotly_white",
         xaxis_title="Date",
         shapes=initial_shapes,
+        annotations=initial_annotations,
         yaxis=dict(
             title=first_range.get("unit", "Value"),
             range=first_y_axis_range,
