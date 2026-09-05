@@ -6,3 +6,7 @@ venv/
 Stage 0 - Raw/Raw_blood_tests.csv
 Stage 1 - Canonical/biomarker_results.csv
 Stage 2 - Dashboard/index.html
+
+#archive personal data (DOB etc)
+archive/*.xlsx
+archive/main.py
