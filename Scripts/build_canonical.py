@@ -23,7 +23,7 @@ BIOMARKER_UNITS = {
     "Omega-3 Index": "%",
 }
 """
-RANGES_PATH = BASE_DIR / "config" / "biomarker_ranges.csv"
+RANGES_PATH = BASE_DIR / "Config" / "biomarker_ranges.csv"
 
 
 

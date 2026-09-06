@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 import plotly.graph_objects as go
 #import html
+import webbrowser
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
@@ -12,7 +13,9 @@ OUT_PATH = OUT_DIR / "index.html"
 INTERVENTIONS_PATH = BASE_DIR / "Stage 0 - Raw" / "interventions.csv"
 INTERVENTION_LINKS_PATH = BASE_DIR / "Stage 0 - Raw" / "intervention_biomarker_links.csv"
 
-RANGES_PATH = BASE_DIR / "config" / "biomarker_ranges.csv"
+RANGES_PATH = BASE_DIR / "Config" / "biomarker_ranges.csv"
+
+DEFAULT_BIOMARKER = "vitamin_d"
 
 ranges_df = pd.read_csv(RANGES_PATH)
 
@@ -283,7 +286,7 @@ def main():
 
     for i, code in enumerate(biomarkers):
         biomarker_range = RANGES.get(code, {})
-        visible = i == 0
+        visible = code == DEFAULT_BIOMARKER
         trace_groups[code] = []
 
         # low band
@@ -383,7 +386,7 @@ def main():
             )
         )
 
-    first_code = biomarkers[0]
+    first_code = DEFAULT_BIOMARKER if DEFAULT_BIOMARKER in biomarkers else biomarkers[0]
     first_range = RANGES.get(first_code, {})
 
     first_values = df.loc[df["biomarker_code"] == first_code, "value"]
@@ -415,7 +418,7 @@ def main():
         ),
         updatemenus=[
             dict(
-                active=0,
+                active=biomarkers.index(first_code),
                 buttons=buttons,
                 x=0.01,
                 y=1.15,
@@ -437,7 +440,7 @@ def main():
             <div class="card">
                 <div class="card-label">{row['biomarker_name']}</div>
                 <div class="card-value">{row['value']} {row['unit']}</div>
-                <div class="card-subtitle">{row['test_date'].date()} · {row['provider']}</div>
+                <div class="card-subtitle">{row['test_date'].date()} - {row['provider']}</div>
             </div>
             """
     table_view = latest[
@@ -749,6 +752,8 @@ def main():
 
     print(f"Read: {CANONICAL_PATH}")
     print(f"Wrote: {OUT_PATH}")
+
+    webbrowser.open(OUT_PATH.resolve().as_uri())
 
 if __name__ == "__main__":
     main()

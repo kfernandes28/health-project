@@ -1,42 +1,77 @@
 # Life OS Health Dashboard
 
-A personal health analytics dashboard built in Python to visualise blood biomarker trends over time.
+## Why I built this
 
-## Overview
+As I've moved into my early 20s, I've started taking my health more seriously, which has naturally led to getting more blood tests.
 
-This project tracks blood test results over time and transforms raw laboratory data into an interactive dashboard.
+The problem is those results end up scattered across different providers and reports, making it difficult to see how biomarkers are changing over time or quickly give doctors useful historical context.
 
-The aim is to make long-term health trends easier to understand, monitor and compare.
+I built this project to bring those results into one place, standardise them, and make long-term health trends easier to understand.
 
-It forms part of a larger "Life OS" ecosystem alongside the Finance Dashboard and Journal Dashboard.
+The result is a small personal health analytics pipeline that:
 
----
+- stores blood test history from multiple providers
+- converts raw results into a consistent longitudinal format
+- visualises biomarker trends over time
+- compares latest results with previous tests
+- shows configurable reference and optimal ranges
+- tracks interventions alongside biomarker changes
+- organises biomarkers into categories with contextual explanations
 
-## Features
+## Architecture
 
-- Import raw blood test results
-- Canonical data processing pipeline
-- Interactive HTML dashboard
-- Biomarker trend visualisation
-- Reference range comparison
-- Longitudinal health tracking
-
----
-
-## Project Structure
-
-```
-Health Project/
-├── Baseline/
-├── Config/
-├── Milestones/
-├── Scripts/
-├── Stage 0 - Raw/
-├── Stage 1 - Canonical/
-├── Stage 2 - Dashboard/
+```text
+Blood test results
+        ↓
+Stage 0 - Raw data
+        ↓
+Python canonicalisation
+        ↓
+Stage 1 - Canonical dataset
+        ↓
+Python dashboard generation
+        ↓
+Stage 2 - Interactive HTML dashboard
 ```
 
----
+Raw blood test results are entered in a simple wide-format CSV.
+
+`build_canonical.py` converts those results into a longitudinal schema where each row represents an individual biomarker result.
+
+`build_dashboard.py` then combines the canonical dataset with biomarker configuration and intervention data to generate the interactive dashboard.
+
+Biomarker metadata such as units, ranges, KPI visibility, categories and descriptions is stored separately in `biomarker_ranges.csv`, keeping dashboard behaviour configuration-driven rather than hardcoded.
+
+## Dashboard
+
+The dashboard combines current state with historical context.
+
+It includes:
+
+- KPI cards for selected biomarkers
+- interactive biomarker trend charts
+- reference and optimal range overlays
+- provider-aware result history
+- latest vs previous result comparisons
+- absolute and percentage change detection
+- Low / Normal / Optimal / High status classification
+- intervention timeline markers
+- category-based collapsible result sections
+- biomarker explanation tooltips
+
+A synthetic sample dataset is included in the repository so the project can be explored without exposing personal health information.
+
+### Dashboard overview
+
+![Dashboard overview](docs/screenshots/dashboard-overview.png)
+
+### Biomarker trends
+
+![Biomarker trend](docs/screenshots/biomarker-trend.png)
+
+### Latest results
+
+![Latest results](docs/screenshots/latest-results.png)
 
 ## How to Run
 
@@ -55,13 +90,13 @@ python3 -m venv venv
 
 3. Activate it
 
-macOS / Linux
+macOS / Linux:
 
 ```bash
 source venv/bin/activate
 ```
 
-Windows
+Windows:
 
 ```bash
 venv\Scripts\activate
@@ -85,22 +120,42 @@ python Scripts/build_canonical.py
 python Scripts/build_dashboard.py
 ```
 
-7. Open the generated HTML dashboard in your browser.
+The generated dashboard will open automatically in your default browser.
 
----
+## Project evolution
 
-## Screenshots
+The project was built incrementally:
 
-Project screenshots will be added here.
+1. **Initial prototype** – started with a small Excel blood tracker and Python visualisation.
+2. **Canonical pipeline** – separated raw data, transformed data and dashboard generation into distinct stages.
+3. **Historical expansion** – expanded the dataset across multiple years, providers and a broader biomarker inventory.
+4. **Context and change detection** – added intervention tracking, latest-vs-previous comparisons and status classification.
+5. **Knowledge and organisation layer** – added biomarker categories, collapsible sections and contextual descriptions.
 
----
+Detailed iteration logs are available in the `Milestones/` directory.
 
-## Future Improvements
+## Technologies
 
-- Single entry-point pipeline
-- Public sample dataset
-- Improved dashboard visualisations
-- Database backend
-- REST API
-- Docker support
-- CI/CD pipeline
+- Python
+- pandas
+- Plotly
+- HTML / CSS
+- CSV-based configuration
+
+## What I learned
+
+What started as a simple way of keeping blood test results in one place became an exercise in designing a small longitudinal data system.
+
+This project gave me practical experience with:
+
+- staged data pipeline design
+- converting wide-form source data into a canonical longitudinal schema
+- separating raw, transformed and presentation layers
+- configuration-driven application behaviour
+- working with multi-provider historical datasets
+- building interactive Plotly visualisations
+- change detection and status classification
+- modelling interventions separately from biomarker observations
+- handling personal-data privacy when preparing a project for public use
+
+The biggest lesson was that the value of health data often comes from context over time rather than any individual measurement.
