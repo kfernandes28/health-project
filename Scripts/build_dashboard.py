@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import plotly.graph_objects as go
-import html
+#import html
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 
